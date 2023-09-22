@@ -5,9 +5,9 @@ import plotly.express as px
 with open('colors.json') as json_data:
     colors = json.load(json_data)
 
-temperature = pd.read_csv('new_data/temperature_data_new.csv')
-wind = pd.read_csv('new_data/wind_data_new.csv')
-sun = pd.read_csv('new_data/sun_data_new.csv')
+temperature = pd.read_csv('data_use/temperature_data_new.csv')
+wind = pd.read_csv('data_use/wind_data_new.csv')
+sun = pd.read_csv('data_use/sun_data_new.csv')
 
 
 # capacity = pd.read_csv('new_res/capacity.csv')

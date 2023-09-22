@@ -3,6 +3,7 @@ Pkg.activate(joinpath(@__DIR__, "."))
 Pkg.develop(path=joinpath(@__DIR__, "Dashboard"))
 Pkg.instantiate()
 
+using Plots
 using JuMP # building models
 using DataStructures # using dictionaries with a default value
 using HiGHS # solver for the JuMP model
@@ -50,7 +51,7 @@ MaxStorageCapacity = readin("maxstoragecapacity.csv",default=999,dims=1, dir=dat
 StorageLosses = readin("storagelosses.csv",default=1,dims=2, dir=data_dir)
 
 # our emission limit
-EmissionLimit = 20000
+EmissionLimit = 10000
 
 # instantiate a model with an optimizer
 ESM = Model(HiGHS.Optimizer)
