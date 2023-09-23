@@ -13,7 +13,7 @@ using JSON3
 using Dashboard
 include(joinpath(@__DIR__, "colors.jl")) # colors for the plots
 
-data_dir = joinpath(@__DIR__, "data")
+data_dir = joinpath(@__DIR__, "data_old")
 
 ### Read in of parameters ###
 # We define our sets from the csv files
@@ -188,3 +188,21 @@ df_demand = DataFrame(
 
 append!(df_use, df_storage_charge)
 append!(df_production, df_storage_production)
+
+
+# Define the path to the results directory
+result_path = mkpath(joinpath(@__DIR__, "results"))
+
+CSV.write(joinpath(result_path, "storage_level.csv"), df_storage_level)
+CSV.write(joinpath(result_path, "storage_charge.csv"), df_storage_level)
+
+CSV.write(joinpath(result_path, "production.csv"), df_production)
+CSV.write(joinpath(result_path, "use.csv"), df_use)
+# CSV.write(joinpath(result_path, "demand.csv"), df_demand)
+# CSV.write(joinpath(result_path, "capacity.csv"), df_capacity)
+# CSV.write(joinpath(result_path, "level.csv"), df_storage_level)
+# CSV.write(joinpath(result_path, "ex_import.csv"), df_import)
+# CSV.write(joinpath(result_path, "ex_export.csv"), df_export)
+# CSV.write(joinpath(result_path, "emission.csv"), df_annualemissions)
+# CSV.write(joinpath(result_path, "emission.csv"), df_annualemissions)
+# CSV.write(joinpath(result_path, "newcapacity.csv"), df_newcapacity)
