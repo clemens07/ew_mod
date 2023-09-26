@@ -6,11 +6,12 @@ with open('colors.json') as json_data:
     colors = json.load(json_data)
 
 temperature = pd.read_csv('data_use/temperature_data_new.csv')
-wind = pd.read_csv('data_use/wind_data_new.csv')
-sun = pd.read_csv('data_use/sun_data_new.csv')
+wind = pd.read_csv('new_data/wind_data_new.csv')
+sun = pd.read_csv('new_data/sun_data_new.csv')
 
 storage_level = pd.read_csv('results/storage_level.csv')
 production = pd.read_csv('results/production.csv')
+curtailment = pd.read_csv('results/curtailment.csv')
 
 
 # capacity = pd.read_csv('new_res/capacity.csv')
@@ -56,15 +57,30 @@ app.layout = html.Div([
     id='sun-line-plot',
     figure=px.line(sun, x='hour', y='value', title='Sun')
     ),
+    dcc.Input(
+        id='start-hour',
+        type='number',
+        value=4000,
+        placeholder='Start Hour'
+    ),
+    dcc.Input(
+        id='end-hour',
+        type='number',
+        value=4200,
+        placeholder='End Hour'
+    ),
     html.H3("Storage Level"),
     
     # Dropdown to select a technology
     dcc.Dropdown(
         id='tech-dropdown',
+        # Add your dropdown options here
         options=[{'label': tech, 'value': tech} for tech in storage_level['Technology'].unique()],
         value=storage_level['Technology'].unique(),
         multi=True  # Allow multiple selections
     ),
+ 
+       
     
     # Plotly figure to display the data
     dcc.Graph(id='tech-plot'),
@@ -80,27 +96,46 @@ app.layout = html.Div([
     ),
     
     # Plotly figure to display the data
-    dcc.Graph(id='production-plot')
+    dcc.Graph(id='production-plot'),
+    dcc.Graph(id='curtailment-plot')
 ])
 
     # Define a callback to update the plot based on the selected technology
 @app.callback(
     Output('tech-plot', 'figure'),
-    Input('tech-dropdown', 'value')
+    Input('tech-dropdown', 'value'),
+    Input('start-hour', 'value'),
+    Input('end-hour', 'value')
 )
-def update_plot(selected_techs):
+def update_plot(selected_techs, start_hour, end_hour):
     filtered_df = storage_level[storage_level['Technology'].isin(selected_techs)]
+    filtered_df = filtered_df[(filtered_df['Hour'] >= start_hour) & (filtered_df['Hour'] <= end_hour)]  # Filter hours
     fig = px.bar(filtered_df, x='Hour', y='value', color='Technology', labels={'Hour': 'Hour', 'value': 'Sum of Value'}, title='Sum of Value by Technology')
     return fig
 
 @app.callback(
     Output('production-plot', 'figure'),
-    Input('production-dropdown', 'value')
+    Input('production-dropdown', 'value'),
+    Input('start-hour', 'value'),
+    Input('end-hour', 'value')
 )
-def update_production_plot(selected_techs):
+def update_production_plot(selected_techs, start_hour, end_hour):
     filtered_df = production[production['Technology'].isin(selected_techs)]
+    filtered_df = filtered_df[(filtered_df['Hour'] >= start_hour) & (filtered_df['Hour'] <= end_hour)]  # Filter hours
     fig = px.bar(filtered_df, x='Hour', y='value', color='Technology', labels={'Hour': 'Hour', 'value': 'Production Value'}, title='Production Value by Technology')
     return fig
+
+@app.callback(
+    Output('curtailment-plot', 'figure'),
+    Input('start-hour', 'value'),
+    Input('end-hour', 'value')
+)
+def update_curtailment_plot(start_hour, end_hour):
+    filtered_df = curtailment[(curtailment['Hour'] >= start_hour) & (production['Hour'] <= end_hour)]
+    
+    fig = px.bar(filtered_df, x='Hour', y='value', color='fuels', labels={'Hour': 'Hour', 'value': 'Value', 'fuels': 'Fuels'}, title='Value by Fuels')
+    return fig
+
 
 
 # @app.callback(

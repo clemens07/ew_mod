@@ -14,27 +14,28 @@ using Dashboard
 include(joinpath(@__DIR__, "colors.jl")) # colors for the plots
 
 data_dir = joinpath(@__DIR__, "data_old")
+data_dir_new = joinpath(@__DIR__, "data_use")
 
 ### Read in of parameters ###
 # We define our sets from the csv files
-technologies = readcsv("technologies.csv", dir=data_dir).technology
+technologies = readcsv("technologies_new.csv", dir=data_dir_new).technology
 fuels = readcsv("fuels.csv", dir=data_dir).fuel
-hour = 1:120
+hour = 1:8760
 n_hour = length(hour)
 storages = readcsv("storages.csv", dir=data_dir).storage
 
 
 # Also, we read our input parameters via csv files
 Demand = readin("demand.csv", default=0, dims=1, dir=data_dir)
-OutputRatio = readin("outputratio.csv", dims=2, dir=data_dir)
+OutputRatio = readin("outputratio_new.csv", dims=2, dir=data_dir_new)
 InputRatio = readin("inputratio.csv", dims=2, dir=data_dir)
-VariableCost = readin("variablecost.csv", dims=1, dir=data_dir)
-InvestmentCost = readin("investmentcost.csv", dims=1, dir=data_dir)
+VariableCost = readin("variablecost_new.csv", dims=1, dir=data_dir_new)
+InvestmentCost = readin("investmentcost_new.csv", dims=1, dir=data_dir_new)
 EmissionRatio = readin("emissionratio.csv", dims=1, dir=data_dir)
-DemandProfile = readin("demand_timeseries.csv", default=1/n_hour, dims=2, dir=data_dir)
-MaxCapacity = readin("maxcapacity.csv",default=999,dims=1, dir=data_dir)
-TagDispatchableTechnology = readin("tag_dispatchabletechnology.csv",dims=1, dir=data_dir)
-CapacityFactor = readin("capacity_factors.csv",default=0, dims=2, dir=data_dir)
+DemandProfile = readin("demand_timeseries_new.csv", default=1/n_hour, dims=2, dir=data_dir_new)
+MaxCapacity = readin("maxcapacity_new.csv",default=999,dims=1, dir=data_dir_new)
+TagDispatchableTechnology = readin("tag_dispatchabletechnology_new.csv",dims=1, dir=data_dir_new)
+CapacityFactor = readin("capacity_factors_new.csv",default=0, dims=2, dir=data_dir_new)
 for t in technologies
     if TagDispatchableTechnology[t] > 0
         for h in hour
@@ -44,14 +45,14 @@ for t in technologies
 end
 
 InvestmentCostStorage = readin("investmentcoststorage.csv",dims=1, dir=data_dir)
-E2PRatio = readin("e2pratio.csv",dims=1, dir=data_dir)
+E2PRatio = readin("e2pratio_new.csv",dims=1, dir=data_dir_new)
 StorageChargeEfficiency = readin("storagechargeefficiency.csv",dims=2, dir=data_dir)
 StorageDisChargeEfficiency = readin("storagedischargeefficiency.csv",dims=2, dir=data_dir)
 MaxStorageCapacity = readin("maxstoragecapacity.csv",default=999,dims=1, dir=data_dir)
 StorageLosses = readin("storagelosses.csv",default=1,dims=2, dir=data_dir)
 
 # our emission limit
-EmissionLimit = 10000
+EmissionLimit = 100000
 
 # instantiate a model with an optimizer
 ESM = Model(HiGHS.Optimizer)
@@ -75,7 +76,7 @@ ESM = Model(HiGHS.Optimizer)
 # Generation must meet demand
 @constraint(ESM, DemandAdequacy[h in hour,f in fuels],
     sum(Production[h,t,f] for t in technologies) + sum(StorageDischarge[s,h,f] for s in storages if StorageDisChargeEfficiency[s,f]>0) == 
-        Demand[f]*DemandProfile[f,h] + sum(Use[h,t,f] for t in technologies)+Curtailment[h,f] + sum(StorageCharge[s,h,f] for s in storages if StorageChargeEfficiency[s,f] > 0)
+        Demand[f]*DemandProfile[f,h]/3000000 + sum(Use[h,t,f] for t in technologies)+Curtailment[h,f] + sum(StorageCharge[s,h,f] for s in storages if StorageChargeEfficiency[s,f] > 0)
 )
 
 # calculate the total cost
@@ -182,6 +183,8 @@ df_storage_production = DataFrame(Containers.rowtable(value,StorageDischarge; he
 df_storage_charge = DataFrame(Containers.rowtable(value,StorageCharge; header = [:Technology, :Hour, :Fuel, :value]))
 df_storage_level = DataFrame(Containers.rowtable(value,StorageLevel; header = [:Technology, :Hour, :Fuel, :value]))
 
+df_curtailment = DataFrame(Containers.rowtable(value,Curtailment; header = [:Hour, :fuels, :value]))
+
 df_demand = DataFrame(
     (Hour=h, Fuel=f, value=Demand[f]*DemandProfile[f,h]) for f in fuels, h in hour
 )
@@ -193,13 +196,15 @@ append!(df_production, df_storage_production)
 # Define the path to the results directory
 result_path = mkpath(joinpath(@__DIR__, "results"))
 
+CSV.write(joinpath(result_path, "curtailment.csv"), df_curtailment)
+
 CSV.write(joinpath(result_path, "storage_level.csv"), df_storage_level)
 CSV.write(joinpath(result_path, "storage_charge.csv"), df_storage_level)
 
 CSV.write(joinpath(result_path, "production.csv"), df_production)
 CSV.write(joinpath(result_path, "use.csv"), df_use)
 # CSV.write(joinpath(result_path, "demand.csv"), df_demand)
-# CSV.write(joinpath(result_path, "capacity.csv"), df_capacity)
+CSV.write(joinpath(result_path, "capacity.csv"), df_capacity)
 # CSV.write(joinpath(result_path, "level.csv"), df_storage_level)
 # CSV.write(joinpath(result_path, "ex_import.csv"), df_import)
 # CSV.write(joinpath(result_path, "ex_export.csv"), df_export)

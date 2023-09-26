@@ -13,4 +13,4 @@ H2Car,Mobility,1
 BEV,Mobility,1
 LPGCar,Mobility,1
 ElectricHeater,Heat,0.9
-Wind,1
+Wind,Power,0.5
